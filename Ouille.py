@@ -141,48 +141,49 @@ class Game:
         self.timer = Timer(delay, self.timeout)
         self.timer.start()
 
-def timeout(self):
-    name = self.get_name(self.current_player)
-    bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
-    self.eliminated.add(self.current_player.id)
+    def timeout(self):
+        name = self.get_name(self.current_player)
+        bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
+        self.eliminated.add(self.current_player.id)
 
-    # 🔻 Ajout des défaites
-    user_id = str(self.current_player.id)
-    if user_id not in victoires_globales:
-        victoires_globales[user_id] = {"victoires": 0, "defaites": 1}
-    else:
-        if isinstance(victoires_globales[user_id], int):  # rétro-compatibilité
-            victoires_globales[user_id] = {"victoires": victoires_globales[user_id], "defaites": 1}
+        # 🔻 Ajout des défaites
+        user_id = str(self.current_player.id)
+        if user_id not in victoires_globales:
+            victoires_globales[user_id] = {"victoires": 0, "defaites": 1}
         else:
-            victoires_globales[user_id]["defaites"] = victoires_globales[user_id].get("defaites", 0) + 1
+            if isinstance(victoires_globales[user_id], int):  # rétro-compatibilité
+                victoires_globales[user_id] = {"victoires": victoires_globales[user_id], "defaites": 1}
+            else:
+                victoires_globales[user_id]["defaites"] = victoires_globales[user_id].get("defaites", 0) + 1
 
-    save_victoires(victoires_globales)
-    self.check_winner_or_continue()
+        save_victoires(victoires_globales)
+        self.check_winner_or_continue()
 
 
-def validate(self, user, word):
-    if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
-        return
+    def validate(self, user, word):
+        if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
+            return
 
-    word = word.lower().strip()
+        word = word.lower().strip()
 
-    if word in self.used_words:
-        bot.send_message(self.chat_id, f"⚠️ Ce mot a déjà été utilisé {self.get_name(user)}. Essaie un autre !", parse_mode="HTML")
-        return
+        if word in self.used_words:
+            bot.send_message(self.chat_id, f"⚠️ Ce mot a déjà été utilisé {self.get_name(user)}. Essaie un autre !", parse_mode="HTML")
+            return
 
-    valid_list = SYNONYMES.get(self.current_word, []) if self.mode == 'synonyme' else ANTONYMES.get(self.current_word, [])
-    if word in valid_list:
-        self.used_words.add(word)
-        bot.send_message(self.chat_id, f"✅ <b>{self.get_name(user)}</b> a réussi !", parse_mode="HTML")
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-        self.current_index = (self.current_index + 1) % len(self.players)
-        self.skip_eliminated()
-        self.ask_next()
-        return
+        valid_list = SYNONYMES.get(self.current_word, []) if self.mode == 'synonyme' else ANTONYMES.get(self.current_word, [])
+        if word in valid_list:
+            self.used_words.add(word)
+            bot.send_message(self.chat_id, f"✅ <b>{self.get_name(user)}</b> a réussi !", parse_mode="HTML")
+            if self.timer:
+                self.timer.cancel()
+                self.timer = None
+            self.current_index = (self.current_index + 1) % len(self.players)
+            self.skip_eliminated()
+            self.ask_next()
+            return
 
-    bot.send_message(self.chat_id, f"⚠️ Mauvaise réponse {self.get_name(user)}. Tu peux réessayer !", parse_mode="HTML")
+        bot.send_message(self.chat_id, f"⚠️ Mauvaise réponse {self.get_name(user)}. Tu peux réessayer !", parse_mode="HTML")
+
 
     def skip_eliminated(self):
         while self.players[self.current_index].id in self.eliminated:
