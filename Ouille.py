@@ -4,6 +4,7 @@ import random
 from threading import Timer
 import time
 import json
+import threading
 import os
 from flask import Flask
 TOKEN = os.getenv("BOT_TOKEN")
@@ -422,6 +423,8 @@ def handle_word(message):
     if game.active:
         game.validate(message.from_user, message.text)
 # ▶️ Flask pour Render
+
+
 app = Flask(__name__)
 
 @app.route('/')
@@ -429,6 +432,9 @@ def home():
     return "Bot Telegram actif via Render ✅"
 
 def run_flask():
-    app.run(host="0.0.0.0", port=8000)
-        
-bot.infinity_polling()
+    port = int(os.getenv("PORT", 8000))
+    app.run(host="0.0.0.0", port=port)
+
+if __name__ == "__main__":
+    threading.Thread(target=run_flask).start()
+    bot.infinity_polling()
