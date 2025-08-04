@@ -142,10 +142,22 @@ class Game:
         self.timer.start()
 
     def timeout(self):
-        name = self.get_name(self.current_player)
-        bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
-        self.eliminated.add(self.current_player.id)
-        self.check_winner_or_continue()
+    name = self.get_name(self.current_player)
+    bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
+    self.eliminated.add(self.current_player.id)
+
+    # 🔻 Ajout des défaites
+    user_id = str(self.current_player.id)
+    if user_id not in victoires_globales:
+        victoires_globales[user_id] = {"victoires": 0, "defaites": 1}
+    else:
+        if isinstance(victoires_globales[user_id], int):  # rétro-compatibilité
+            victoires_globales[user_id] = {"victoires": victoires_globales[user_id], "defaites": 1}
+        else:
+            victoires_globales[user_id]["defaites"] = victoires_globales[user_id].get("defaites", 0) + 1
+
+    save_victoires(victoires_globales)
+    self.check_winner_or_continue()
 
     def validate(self, user, word):
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
@@ -359,13 +371,24 @@ def bilan_personnel(message):
     user_id = str(message.from_user.id)
     chat_id = message.chat.id
 
-    victoires = victoires_globales.get(user_id, 0)
-    defaites = 0  # à gérer plus tard
+    record = victoires_globales.get(user_id, {"victoires": 0, "defaites": 0})
+
+    if isinstance(record, int):  # rétro-compatibilité
+        victoires = record
+        defaites = 0
+    else:
+        victoires = record.get("victoires", 0)
+        defaites = record.get("defaites", 0)
 
     total = victoires + defaites
     taux = f"{(victoires / total * 100):.1f}%" if total > 0 else "0%"
 
-    classement = sorted(victoires_globales.items(), key=lambda x: x[1], reverse=True)
+    # Tri du classement par victoires (en prenant en compte la nouvelle structure JSON)
+    classement = sorted(
+        victoires_globales.items(),
+        key=lambda x: x[1] if isinstance(x[1], int) else x[1].get("victoires", 0),
+        reverse=True
+    )
     position = next((i + 1 for i, (uid, _) in enumerate(classement) if uid == user_id), None)
 
     def get_statut(pos):
@@ -386,7 +409,7 @@ def bilan_personnel(message):
 
     texte = f"<b>📋 Bilan de {nom}</b>\n"
     texte += f"<blockquote><b> 🏆 Victoires : {victoires}</b></blockquote>\n"
-    texte += f" <blockquote><b> ☠️ Défaites : {defaites}</b></blockquote>\n"
+    texte += f"<blockquote><b> ☠️ Défaites : {defaites}</b></blockquote>\n"
     texte += f"<blockquote><b> ♟️ Taux de réussite : {taux}</b></blockquote>\n"
     texte += f"<blockquote><b> 🌍 Position : {position if position else 'Non classé'}</b></blockquote>\n"
     texte += f"<blockquote><b> 🏅 Statut : {statut}</b></blockquote>"
@@ -395,7 +418,6 @@ def bilan_personnel(message):
         bot.send_message(chat_id, texte, parse_mode="HTML")
     except Exception as e:
         print("Erreur envoi bilan :", e)
-        
 @bot.message_handler(commands=['waitgame'])
 def wait_game(message):
     chat_id = message.chat.id
