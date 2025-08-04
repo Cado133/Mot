@@ -134,7 +134,7 @@ class Game:
         name = self.get_name(self.current_player)
         bot.send_message(
             self.chat_id,
-            f"<b>Tour de {name}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {delay} secondes !",
+            f"<b> Tour de {name}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {delay} secondes !",
             parse_mode="HTML"
         )
 
