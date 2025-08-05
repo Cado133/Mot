@@ -128,6 +128,8 @@ class Game:
 
 def ask_next(self):
     if not self.active:
+   def ask_next(self):
+    if not self.active:
         return
 
     if self.timer:
@@ -137,15 +139,19 @@ def ask_next(self):
     self.current_player = self.players[self.current_index]
     self.turn_count[self.current_player.id] += 1
 
-    # 🎯 motArena joue automatiquement
-    if self.current_player.id == MOTARENA_ID:
-        word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
-        word = random.choice(list(word_list.keys()))
-        while word in self.used_words:
-            word = random.choice(list(word_list.keys()))
-        self.current_word = word
-        self.used_words.add(word)
+    word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
+    available_words = list(word_list.keys())
 
+    # Choisir un mot qui n’a pas encore été utilisé
+    word = random.choice(available_words)
+    while word in self.used_words and len(self.used_words) < len(available_words):
+        word = random.choice(available_words)
+
+    self.current_word = word
+    self.used_words.add(word)
+
+    if self.current_player.id == MOTARENA_ID:
+        # 🤖 motArena joue automatiquement
         reponse = word_list[word][0]  # 1ère bonne réponse
         bot.send_message(
             self.chat_id,
@@ -154,32 +160,19 @@ def ask_next(self):
         )
         time.sleep(2)
         bot.send_message(self.chat_id, f"💬 motArena : \"{reponse}\" 😏", parse_mode="HTML")
+        self.validate(self.current_player, reponse)
+    else:
+        # 👤 Tour d’un joueur humain
+        nom = self.get_name(self.current_player)
+        temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
 
-        # Passe au joueur suivant
-        self.current_index = (self.current_index + 1) % len(self.players)
-        self.skip_eliminated()
-        self.ask_next()
-        return
-
-    # 👤 Joueur normal
-    word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
-    word = random.choice(list(word_list.keys()))
-    while word in self.used_words:
-        word = random.choice(list(word_list.keys()))
-    self.current_word = word
-    self.used_words.add(word)
-
-    name = self.get_name(self.current_player)
-    delay = 20 if self.turn_count[self.current_player.id] <= 2 else 10
-
-    bot.send_message(
-        self.chat_id,
-        f"<b>Tour de {name}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {delay} secondes !",
-        parse_mode="HTML"
-    )
-
-    self.timer = Timer(delay, self.timeout)
-    self.timer.start()
+        bot.send_message(
+            self.chat_id,
+            f"<b>Tour de {nom}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {temps} secondes !",
+            parse_mode="HTML"
+        )
+        self.timer = Timer(temps, self.timeout)
+        self.timer.start()
     
     def timeout(self):
         name = self.get_name(self.current_player)
