@@ -106,15 +106,15 @@ class Game:
             self.start_countdown()
         return True
 
-    def start_game(self):
-        self.silent_cancel_countdown()  # Remplacé par version silencieuse
-        if len(self.players) < 2:
-            bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
-            return
-        self.active = True
-        self.ask_next()
+def start_game(self):
+    self.silent_cancel_countdown()  # Remplacé par version silencieuse
+    if len(self.players) < 2:
+        bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
+        return
+    self.active = True
+    self.ask_next()
 
-    def ask_next(self):
+def ask_next(self):
     if not self.active:
         return
     if self.timer:
