@@ -119,14 +119,14 @@ class Game:
         return True
 
     def start_game(self):
-        self.silent_cancel_countdown()
+        self.silent_cancel_countdown()  # Remplacé par version silencieuse
         if len(self.players) < 2:
             bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
             return
         self.active = True
         self.ask_next()
 
-    def ask_next(self):
+def ask_next(self):
         if not self.active:
             return
 
@@ -148,32 +148,15 @@ class Game:
         self.used_words.add(word)
 
         if self.current_player.id == MOTARENA_ID:
-            bonnes_reponses = word_list[word]
+            reponse = word_list[word][0]
             bot.send_message(
                 self.chat_id,
                 f"<b>Tour de motArena</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>",
                 parse_mode="HTML"
             )
             time.sleep(2)
-
-            tentative = 0
-            max_tentatives = 10
-            reponse = None
-
-            while tentative < max_tentatives:
-                candidat = random.choice(bonnes_reponses)
-                if candidat not in self.used_words:
-                    reponse = candidat
-                    break
-                tentative += 1
-
-            if reponse is None:
-                reponse = random.choice(bonnes_reponses)
-
-            self.used_words.add(reponse)
             bot.send_message(self.chat_id, f"💬 motArena : \"{reponse}\" 😏", parse_mode="HTML")
             self.validate(self.current_player, reponse)
-
         else:
             nom = self.get_name(self.current_player)
             temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
@@ -186,7 +169,26 @@ class Game:
             self.timer = Timer(temps, self.timeout)
             self.timer.start()
 
-    def validate(self, user, word):
+def timeout(self):
+        name = self.get_name(self.current_player)
+        bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
+        self.eliminated.add(self.current_player.id)
+
+        # 🔻 Ajout des défaites
+        user_id = str(self.current_player.id)
+        if user_id not in victoires_globales:
+            victoires_globales[user_id] = {"victoires": 0, "defaites": 1}
+        else:
+            if isinstance(victoires_globales[user_id], int):  # rétro-compatibilité
+                victoires_globales[user_id] = {"victoires": victoires_globales[user_id], "defaites": 1}
+            else:
+                victoires_globales[user_id]["defaites"] = victoires_globales[user_id].get("defaites", 0) + 1
+
+        save_victoires(victoires_globales)
+        self.check_winner_or_continue()
+
+
+def validate(self, user, word):
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
             return
 
@@ -210,48 +212,51 @@ class Game:
 
         bot.send_message(self.chat_id, f"⚠️ Mauvaise réponse {self.get_name(user)}. Tu peux réessayer !", parse_mode="HTML")
 
-    def skip_eliminated(self):
-        while self.players[self.current_index].id in self.eliminated:
-            self.current_index = (self.current_index + 1) % len(self.players)
 
-    def check_winner_or_continue(self):
-        alive = [p for p in self.players if p.id not in self.eliminated]
+def skip_eliminated(self):
+    while self.players[self.current_index].id in self.eliminated:
+        self.current_index = (self.current_index + 1) % len(self.players)
 
-        if len(alive) == 1:
-            winner = alive[0]
-            winner_name = self.get_name(winner)
+def check_winner_or_continue(self):
+    alive = [p for p in self.players if p.id not in self.eliminated]
 
-            bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
+    if len(alive) == 1:
+        winner = alive[0]
+        winner_name = self.get_name(winner)
 
-            if winner.id == MOTARENA_ID:
-                vanne = random.choice(VANNES_MOTARENA)
-                time.sleep(1.5)
-                bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
-            else:
-                uid = str(winner.id)
-                if uid not in victoires_globales:
-                    victoires_globales[uid] = {"victoires": 1, "defaites": 0}
-                else:
-                    if isinstance(victoires_globales[uid], int):
-                        victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
-                    else:
-                        victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
+        # 🎉 Annonce de victoire
+        bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
 
-                save_victoires(victoires_globales)
-
-            self.active = False
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-            del games[self.chat_id]
-
+        if winner.id == MOTARENA_ID:
+            vanne = random.choice(VANNES_MOTARENA)
+            time.sleep(1.5)
+            bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
         else:
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-            self.current_index = (self.current_index + 1) % len(self.players)
-            self.skip_eliminated()
-            self.ask_next()
+            uid = str(winner.id)
+            if uid not in victoires_globales:
+                victoires_globales[uid] = {"victoires": 1, "defaites": 0}
+            else:
+                if isinstance(victoires_globales[uid], int):
+                    victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
+                else:
+                    victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
+
+            save_victoires(victoires_globales)
+
+        # Nettoyage de la partie
+        self.active = False
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        del games[self.chat_id]
+
+    else:
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        self.current_index = (self.current_index + 1) % len(self.players)
+        self.skip_eliminated()
+        self.ask_next()
 ### ━━━ Commandes Telegram ━━━
 
 # ➤ Bloque les commandes interdites en DM
@@ -619,4 +624,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling() 
+    bot.infinity_polling()
