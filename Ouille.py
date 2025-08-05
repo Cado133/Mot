@@ -19,7 +19,7 @@ SYNONYMES = data["synonymes"]
 ANTONYMES = data["antonymes"]
 COMMANDES_DM_AUTORISÉES = ["/start", "/gradin", "/bilan" , "/joueurs" , "/reset" ]
 VICTOIRES_FILE = "victoires.json"
-
+MBOT_ID = -999999  # Doit être le même que dans le fichier Mbot.py
 def load_victoires():
     if not os.path.exists(VICTOIRES_FILE):
         return {}
