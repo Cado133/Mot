@@ -19,7 +19,7 @@ SYNONYMES = data["synonymes"]
 ANTONYMES = data["antonymes"]
 COMMANDES_DM_AUTORISÉES = ["/start", "/gradin", "/bilan" , "/joueurs" , "/reset" ]
 VICTOIRES_FILE = "victoires.json"
-MBOT_ID = -999999  # Doit être le même que dans le fichier Mbot.py
+
 def load_victoires():
     if not os.path.exists(VICTOIRES_FILE):
         return {}
@@ -106,87 +106,8 @@ class Game:
             self.start_countdown()
         return True
 
-def start_game(self):
-    self.silent_cancel_countdown()  # Remplacé par version silencieuse
-    if len(self.players) < 2:
-        bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
-        return
-class Game:
-    def __init__(self, chat_id, mode=None):
-        self.chat_id = chat_id
-        self.mode = mode
-        self.players = []
-        self.usernames = {}
-        self.current_index = 0
-        self.used_words = set()
-        self.turn_count = {}
-        self.timer = None
-        self.active = False
-        self.current_word = ""
-        self.current_player = None
-        self.eliminated = set()
-        self.countdown_started = False
-        self.countdown_timer = None
-        self.countdown_thread = None
-        self.countdown_seconds = 30
-        self.countdown_cancelled = False
-
-    def get_name(self, user):
-        return f"@{user.username}" if user.username else f"<n>{user.first_name}</n>"
-
-    def silent_cancel_countdown(self):
-        self.countdown_cancelled = True
-        if self.countdown_thread:
-            self.countdown_thread.cancel()
-            self.countdown_thread = None 
-
-    def cancel_countdown(self):
-        self.countdown_cancelled = True
-        if self.countdown_thread:
-            self.countdown_thread.cancel()
-            self.countdown_thread = None
-        bot.send_message(self.chat_id, "⏸️ Le compte à rebours est suspendu. Tape /flashgame pour commencer quand tu veux.")
-
-    def start_countdown(self):
-        self.countdown_started = True
-        self.countdown_seconds = 30
-        self.countdown_cancelled = False
-        bot.send_message(self.chat_id, "<b>Début automatique dans 30 secondes…</b>", parse_mode="HTML")
-        self.countdown_thread = Timer(0, self.countdown_step)
-        self.countdown_thread.start()
-
-    def countdown_step(self):
-        if self.countdown_cancelled:
-            return
-        if self.countdown_seconds <= 0:
-            self.start_game()
-            return
-        if self.countdown_seconds in [30, 25, 20, 15, 10, 5]:
-            bot.send_message(self.chat_id, f"⏳ Début dans {self.countdown_seconds} secondes…")
-        self.countdown_seconds -= 5
-        self.countdown_thread = Timer(5, self.countdown_step)
-        self.countdown_thread.start()
-
-    def add_player(self, user):
-        if user.id in [p.id for p in self.players] or self.active:
-            return False
-        if len(self.players) >= 4:
-            bot.send_message(self.chat_id, "⛔ La partie est pleine (4 joueurs max).")
-            return False
-        self.players.append(user)
-        self.usernames[user.id] = user.username or user.first_name
-        self.turn_count[user.id] = 0
-        bot.send_message(
-            self.chat_id,
-            f"✅ {self.get_name(user)} a rejoint la partie ({len(self.players)}/4)",
-            parse_mode="HTML"
-        )
-        if len(self.players) >= 2 and not self.countdown_started:
-            self.start_countdown()
-        return True
-
     def start_game(self):
-        self.silent_cancel_countdown()
+        self.silent_cancel_countdown()  # Remplacé par version silencieuse
         if len(self.players) < 2:
             bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
             return
@@ -217,25 +138,6 @@ class Game:
             parse_mode="HTML"
         )
 
-        # Mise à jour de game_state.json (pour interaction avec Mbot)
-        try:
-            with open("game_state.json", "r", encoding="utf-8") as f:
-                state = json.load(f)
-        except FileNotFoundError:
-            state = {}
-
-        state[str(self.chat_id)] = {
-            "active": self.active,
-            "mode": self.mode,
-            "players": [{"id": p.id} for p in self.players],
-            "current_player_id": self.current_player.id,
-            "current_word": self.current_word,
-            "used_words": list(self.used_words),
-            "mbot_response": None
-        }
-
-        with open("game_state.json", "w", encoding="utf-8") as f:
-            json.dump(state, f, ensure_ascii=False, indent=2)
         self.timer = Timer(delay, self.timeout)
         self.timer.start()
 
@@ -459,73 +361,13 @@ def show_gradin(message):
 
         medal = medals[rang-1] if rang <= 3 else f"{rang}."
         texte += f"{medal} {nom} — {nb_victoires} victoire{'s' if nb_victoires > 1 else ''}\n"
-@bot.message_handler(commands=['bot'])
-def activer_mbot(message):
-    chat_id = message.chat.id
-    if chat_id not in games:
-        bot.send_message(chat_id, "⛔ Aucune partie n’est en attente. Lance /startgame d’abord.")
-        return
 
-    game = games[chat_id]
-
-    if game.active:
-        bot.send_message(chat_id, "⚠️ La partie a déjà commencé.")
-        return
-
-    if game.mode is None:
-        bot.send_message(chat_id, "⚠️ Choisis un mode d’abord.")
-        return
-
-    if MBOT_ID in [p.id for p in game.players]:
-        bot.send_message(chat_id, "🤖 Mbot est déjà dans la partie.")
-        return
-
-    # Ajout de Mbot comme faux joueur
-    class FakeUser:
-        def __init__(self, id, username, first_name):
-            self.id = id
-            self.username = username
-            self.first_name = first_name
-
-    mbot_user = FakeUser(MBOT_ID, "Mbot", "Mbot")
-    game.add_player(mbot_user)
-
-    # Mettre à jour game_state.json
-    try:
-        with open("game_state.json", "r", encoding="utf-8") as f:
-            state = json.load(f)
-    except FileNotFoundError:
-        state = {}
-
-    state[str(chat_id)] = {
-        "active": False,
-        "mode": game.mode,
-        "players": [{"id": p.id} for p in game.players],
-        "current_player_id": None,
-        "current_word": "",
-        "used_words": [],
-        "mbot_response": None
-    }
-
-    with open("game_state.json", "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
-
-    # Phrase d'entrée arrogante
-    punchlines = [
-        "🎭 Mbot entre dans l’arène. Faites vos prières.",
-        "📚 Je suis le dictionnaire vivant. Vous n’avez aucune chance.",
-        "🤖 Préparez-vous à pleurer, je vais vous humilier avec des mots.",
-        "😈 Oh... encore des humains faibles. C’est presque trop facile.",
-        "🎮 Je joue avec vous, pas contre vous."
-    ]
-    bot.send_message(chat_id, random.choice(punchlines), parse_mode="HTML")
     texte += "</blockquote>"
 
     try:
         bot.send_message(chat_id, texte, parse_mode="HTML")
     except Exception as e:
         print("Erreur envoi classement :", e)
-        
 @bot.message_handler(commands=['bilan'])
 def bilan_personnel(message):
     user_id = str(message.from_user.id)
