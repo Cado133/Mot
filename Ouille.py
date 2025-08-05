@@ -46,7 +46,6 @@ games = {}
 
 
 
-
 class Game:
     def __init__(self, chat_id, mode=None):
         self.chat_id = chat_id
@@ -161,10 +160,13 @@ class Game:
 
             time.sleep(1)
 
+            # motArena donne toujours la bonne réponse directement, sans fausse réponse
             reponse_correcte = random.choice(bonnes_reponses)
             bot.send_message(self.chat_id, f"💬 motArena : \"{reponse_correcte}\" 😏", parse_mode="HTML")
 
+            # Valide la bonne réponse automatiquement
             self.validate(self.current_player, reponse_correcte)
+
         else:
             nom = self.get_name(self.current_player)
             temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
@@ -178,6 +180,15 @@ class Game:
             self.timer.start()
 
     def timeout(self):
+        # motArena est invincible : il ne peut pas être éliminé par timeout
+        if self.current_player.id == MOTARENA_ID:
+            bot.send_message(self.chat_id, "🤖 motArena a pris son temps... mais il reste en jeu. 😈")
+            # Passer au joueur suivant
+            self.current_index = (self.current_index + 1) % len(self.players)
+            self.skip_eliminated()
+            self.ask_next()
+            return
+
         bot.send_message(self.chat_id, f"⏰ Temps écoulé pour {self.get_name(self.current_player)} ! Tu es éliminé.")
         self.eliminated.add(self.current_player.id)
         self.check_winner_or_continue()
@@ -186,8 +197,12 @@ class Game:
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
             return
 
-        # Bloque si le chrono est déjà fini
+        # IGNORE TOUTE RÉPONSE SI LE TIMER EST DÉJÀ EXPIRÉ
         if self.timer is None:
+            return
+
+        # IGNORE LES RÉPONSES DE motArena (pour éviter doublons ou triche)
+        if user.id == MOTARENA_ID:
             return
 
         word = word.lower().strip()
@@ -237,7 +252,7 @@ class Game:
                     else:
                         victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
 
-                # Ajouter 1 défaite à tous les perdants
+                # Ajouter 1 défaite à tous les perdants sauf motArena
                 for joueur in self.players:
                     jid = str(joueur.id)
                     if jid != uid and joueur.id != MOTARENA_ID:
