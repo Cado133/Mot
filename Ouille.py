@@ -368,6 +368,33 @@ def show_gradin(message):
         bot.send_message(chat_id, texte, parse_mode="HTML")
     except Exception as e:
         print("Erreur envoi classement :", e)
+@bot.message_handler(commands=['annule'])
+def annule_partie(message):
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    if chat_id not in games:
+        bot.send_message(chat_id, "❌ Aucune partie en cours à annuler.")
+        return
+
+    game = games[chat_id]
+    lanceur_id = game.players[0].id  # Le premier joueur est le créateur de la partie
+
+    if user_id != lanceur_id:
+        bot.send_message(chat_id, "⛔ Seul le joueur qui a lancé la partie peut l’annuler.")
+        return
+
+    # Arrête tous les timers
+    if game.timer:
+        game.timer.cancel()
+        game.timer = None
+    if game.countdown_thread:
+        game.countdown_thread.cancel()
+        game.countdown_thread = None
+
+    del games[chat_id]
+    bot.send_message(chat_id, "🛑 La partie a été annulée par son créateur.")
+
 @bot.message_handler(commands=['bilan'])
 def bilan_personnel(message):
     user_id = str(message.from_user.id)
