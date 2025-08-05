@@ -238,22 +238,54 @@ def nombre_joueurs(message):
 def start_game(message):
     chat_id = message.chat.id
     user = message.from_user
+
     if chat_id in games:
         bot.send_message(chat_id, "⚠️ Une partie est déjà en cours ou en attente.")
         return
 
-    # Création de la partie
     games[chat_id] = Game(chat_id)
     games[chat_id].add_player(user)
 
-    # Affichage du menu de sélection de mode
-    markup = InlineKeyboardMarkup()
-    markup.add(
+    # ✅ Message avec bouton "Rejoindre"
+    nom_createur = games[chat_id].get_name(user)
+    texte = f"🎮 Partie créée par {nom_createur}\nClique sur <b>Rejoindre</b> ou tape /play pour entrer !"
+
+    join_markup = InlineKeyboardMarkup()
+    join_markup.add(InlineKeyboardButton("➕ Rejoindre", callback_data="rejoindre_partie"))
+    bot.send_message(chat_id, texte, parse_mode="HTML", reply_markup=join_markup)
+
+    # ✅ Sélection du mode
+    mode_markup = InlineKeyboardMarkup()
+    mode_markup.add(
         InlineKeyboardButton("🎯 Synonymes", callback_data="mode_synonyme"),
         InlineKeyboardButton("🚫 Antonymes", callback_data="mode_antonyme")
     )
-    bot.send_message(chat_id, "<b>Choisis un mode :</b>", parse_mode="HTML", reply_markup=markup)
+    bot.send_message(chat_id, "<b>Choisis un mode :</b>", parse_mode="HTML", reply_markup=mode_markup)
+@bot.callback_query_handler(func=lambda call: call.data == "rejoindre_partie")
+def rejoindre_via_bouton(call):
+    chat_id = call.message.chat.id
+    user = call.from_user
 
+    if chat_id not in games:
+        bot.answer_callback_query(call.id, text="❌ Aucune partie en attente.")
+        return
+
+    game = games[chat_id]
+
+    if game.active:
+        bot.answer_callback_query(call.id, text="⛔ La partie a déjà commencé.")
+        return
+
+    if game.mode is None:
+        bot.answer_callback_query(call.id, text="⚠️ Aucun mode n’a encore été choisi.")
+        return
+
+    if user.id in [p.id for p in game.players]:
+        bot.answer_callback_query(call.id, text="ℹ️ Tu es déjà dans la partie.")
+        return
+
+    game.add_player(user)
+    bot.answer_callback_query(call.id, text="✅ Tu as rejoint la partie !")
 @bot.message_handler(commands=['play'])
 def join_game(message):
     chat_id = message.chat.id
