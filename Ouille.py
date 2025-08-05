@@ -127,54 +127,49 @@ class Game:
         self.ask_next()
 
 def ask_next(self):
-    if not self.active:
-   def ask_next(self):
-    if not self.active:
-        return
+        if not self.active:
+            return
 
-    if self.timer:
-        self.timer.cancel()
-        self.timer = None
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
 
-    self.current_player = self.players[self.current_index]
-    self.turn_count[self.current_player.id] += 1
+        self.current_player = self.players[self.current_index]
+        self.turn_count[self.current_player.id] += 1
 
-    word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
-    available_words = list(word_list.keys())
+        word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
+        available_words = list(word_list.keys())
 
-    # Choisir un mot qui n’a pas encore été utilisé
-    word = random.choice(available_words)
-    while word in self.used_words and len(self.used_words) < len(available_words):
         word = random.choice(available_words)
+        while word in self.used_words and len(self.used_words) < len(available_words):
+            word = random.choice(available_words)
 
-    self.current_word = word
-    self.used_words.add(word)
+        self.current_word = word
+        self.used_words.add(word)
 
-    if self.current_player.id == MOTARENA_ID:
-        # 🤖 motArena joue automatiquement
-        reponse = word_list[word][0]  # 1ère bonne réponse
-        bot.send_message(
-            self.chat_id,
-            f"<b>Tour de motArena</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>",
-            parse_mode="HTML"
-        )
-        time.sleep(2)
-        bot.send_message(self.chat_id, f"💬 motArena : \"{reponse}\" 😏", parse_mode="HTML")
-        self.validate(self.current_player, reponse)
-    else:
-        # 👤 Tour d’un joueur humain
-        nom = self.get_name(self.current_player)
-        temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
+        if self.current_player.id == MOTARENA_ID:
+            reponse = word_list[word][0]
+            bot.send_message(
+                self.chat_id,
+                f"<b>Tour de motArena</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>",
+                parse_mode="HTML"
+            )
+            time.sleep(2)
+            bot.send_message(self.chat_id, f"💬 motArena : \"{reponse}\" 😏", parse_mode="HTML")
+            self.validate(self.current_player, reponse)
+        else:
+            nom = self.get_name(self.current_player)
+            temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
 
-        bot.send_message(
-            self.chat_id,
-            f"<b>Tour de {nom}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {temps} secondes !",
-            parse_mode="HTML"
-        )
-        self.timer = Timer(temps, self.timeout)
-        self.timer.start()
-    
-    def timeout(self):
+            bot.send_message(
+                self.chat_id,
+                f"<b>Tour de {nom}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {temps} secondes !",
+                parse_mode="HTML"
+            )
+            self.timer = Timer(temps, self.timeout)
+            self.timer.start()
+
+def timeout(self):
         name = self.get_name(self.current_player)
         bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
         self.eliminated.add(self.current_player.id)
@@ -193,7 +188,7 @@ def ask_next(self):
         self.check_winner_or_continue()
 
 
-    def validate(self, user, word):
+def validate(self, user, word):
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
             return
 
