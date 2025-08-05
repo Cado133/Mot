@@ -111,52 +111,131 @@ def start_game(self):
     if len(self.players) < 2:
         bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
         return
-    self.active = True
-    self.ask_next()
-
-def ask_next(self):
-    if not self.active:
-        return
-    if self.timer:
-        self.timer.cancel()
+class Game:
+    def __init__(self, chat_id, mode=None):
+        self.chat_id = chat_id
+        self.mode = mode
+        self.players = []
+        self.usernames = {}
+        self.current_index = 0
+        self.used_words = set()
+        self.turn_count = {}
         self.timer = None
-    self.current_player = self.players[self.current_index]
-    self.turn_count[self.current_player.id] += 1
-    delay = 20 if self.turn_count[self.current_player.id] <= 2 else 10
+        self.active = False
+        self.current_word = ""
+        self.current_player = None
+        self.eliminated = set()
+        self.countdown_started = False
+        self.countdown_timer = None
+        self.countdown_thread = None
+        self.countdown_seconds = 30
+        self.countdown_cancelled = False
 
-    word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
-    word = random.choice(list(word_list.keys()))
-    while word in self.used_words:
+    def get_name(self, user):
+        return f"@{user.username}" if user.username else f"<n>{user.first_name}</n>"
+
+    def silent_cancel_countdown(self):
+        self.countdown_cancelled = True
+        if self.countdown_thread:
+            self.countdown_thread.cancel()
+            self.countdown_thread = None 
+
+    def cancel_countdown(self):
+        self.countdown_cancelled = True
+        if self.countdown_thread:
+            self.countdown_thread.cancel()
+            self.countdown_thread = None
+        bot.send_message(self.chat_id, "⏸️ Le compte à rebours est suspendu. Tape /flashgame pour commencer quand tu veux.")
+
+    def start_countdown(self):
+        self.countdown_started = True
+        self.countdown_seconds = 30
+        self.countdown_cancelled = False
+        bot.send_message(self.chat_id, "<b>Début automatique dans 30 secondes…</b>", parse_mode="HTML")
+        self.countdown_thread = Timer(0, self.countdown_step)
+        self.countdown_thread.start()
+
+    def countdown_step(self):
+        if self.countdown_cancelled:
+            return
+        if self.countdown_seconds <= 0:
+            self.start_game()
+            return
+        if self.countdown_seconds in [30, 25, 20, 15, 10, 5]:
+            bot.send_message(self.chat_id, f"⏳ Début dans {self.countdown_seconds} secondes…")
+        self.countdown_seconds -= 5
+        self.countdown_thread = Timer(5, self.countdown_step)
+        self.countdown_thread.start()
+
+    def add_player(self, user):
+        if user.id in [p.id for p in self.players] or self.active:
+            return False
+        if len(self.players) >= 4:
+            bot.send_message(self.chat_id, "⛔ La partie est pleine (4 joueurs max).")
+            return False
+        self.players.append(user)
+        self.usernames[user.id] = user.username or user.first_name
+        self.turn_count[user.id] = 0
+        bot.send_message(
+            self.chat_id,
+            f"✅ {self.get_name(user)} a rejoint la partie ({len(self.players)}/4)",
+            parse_mode="HTML"
+        )
+        if len(self.players) >= 2 and not self.countdown_started:
+            self.start_countdown()
+        return True
+
+    def start_game(self):
+        self.silent_cancel_countdown()
+        if len(self.players) < 2:
+            bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
+            return
+        self.active = True
+        self.ask_next()
+
+    def ask_next(self):
+        if not self.active:
+            return
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        self.current_player = self.players[self.current_index]
+        self.turn_count[self.current_player.id] += 1
+        delay = 20 if self.turn_count[self.current_player.id] <= 2 else 10
+
+        word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
         word = random.choice(list(word_list.keys()))
-    self.current_word = word
-    self.used_words.add(word)
+        while word in self.used_words:
+            word = random.choice(list(word_list.keys()))
+        self.current_word = word
+        self.used_words.add(word)
 
-    name = self.get_name(self.current_player)
-    bot.send_message(
-        self.chat_id,
-        f"<b>Tour de {name}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {delay} secondes !",
-        parse_mode="HTML"
-    )
+        name = self.get_name(self.current_player)
+        bot.send_message(
+            self.chat_id,
+            f"<b>Tour de {name}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {delay} secondes !",
+            parse_mode="HTML"
+        )
 
-    # === Ajout pour mettre à jour game_state.json ===
-    try:
-        with open("game_state.json", "r", encoding="utf-8") as f:
-            state = json.load(f)
-    except FileNotFoundError:
-        state = {}
+        # Mise à jour de game_state.json (pour interaction avec Mbot)
+        try:
+            with open("game_state.json", "r", encoding="utf-8") as f:
+                state = json.load(f)
+        except FileNotFoundError:
+            state = {}
 
-    state[str(self.chat_id)] = {
-        "active": self.active,
-        "mode": self.mode,
-        "players": [{"id": p.id} for p in self.players],
-        "current_player_id": self.current_player.id,
-        "current_word": self.current_word,
-        "used_words": list(self.used_words),
-        "mbot_response": None
-    }
+        state[str(self.chat_id)] = {
+            "active": self.active,
+            "mode": self.mode,
+            "players": [{"id": p.id} for p in self.players],
+            "current_player_id": self.current_player.id,
+            "current_word": self.current_word,
+            "used_words": list(self.used_words),
+            "mbot_response": None
+        }
 
-    with open("game_state.json", "w", encoding="utf-8") as f:
-        json.dump(state, f, ensure_ascii=False, indent=2)
+        with open("game_state.json", "w", encoding="utf-8") as f:
+            json.dump(state, f, ensure_ascii=False, indent=2)
         self.timer = Timer(delay, self.timeout)
         self.timer.start()
 
