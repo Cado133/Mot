@@ -361,13 +361,73 @@ def show_gradin(message):
 
         medal = medals[rang-1] if rang <= 3 else f"{rang}."
         texte += f"{medal} {nom} — {nb_victoires} victoire{'s' if nb_victoires > 1 else ''}\n"
+@bot.message_handler(commands=['bot'])
+def activer_mbot(message):
+    chat_id = message.chat.id
+    if chat_id not in games:
+        bot.send_message(chat_id, "⛔ Aucune partie n’est en attente. Lance /startgame d’abord.")
+        return
 
+    game = games[chat_id]
+
+    if game.active:
+        bot.send_message(chat_id, "⚠️ La partie a déjà commencé.")
+        return
+
+    if game.mode is None:
+        bot.send_message(chat_id, "⚠️ Choisis un mode d’abord.")
+        return
+
+    if MBOT_ID in [p.id for p in game.players]:
+        bot.send_message(chat_id, "🤖 Mbot est déjà dans la partie.")
+        return
+
+    # Ajout de Mbot comme faux joueur
+    class FakeUser:
+        def __init__(self, id, username, first_name):
+            self.id = id
+            self.username = username
+            self.first_name = first_name
+
+    mbot_user = FakeUser(MBOT_ID, "Mbot", "Mbot")
+    game.add_player(mbot_user)
+
+    # Mettre à jour game_state.json
+    try:
+        with open("game_state.json", "r", encoding="utf-8") as f:
+            state = json.load(f)
+    except FileNotFoundError:
+        state = {}
+
+    state[str(chat_id)] = {
+        "active": False,
+        "mode": game.mode,
+        "players": [{"id": p.id} for p in game.players],
+        "current_player_id": None,
+        "current_word": "",
+        "used_words": [],
+        "mbot_response": None
+    }
+
+    with open("game_state.json", "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
+
+    # Phrase d'entrée arrogante
+    punchlines = [
+        "🎭 Mbot entre dans l’arène. Faites vos prières.",
+        "📚 Je suis le dictionnaire vivant. Vous n’avez aucune chance.",
+        "🤖 Préparez-vous à pleurer, je vais vous humilier avec des mots.",
+        "😈 Oh... encore des humains faibles. C’est presque trop facile.",
+        "🎮 Je joue avec vous, pas contre vous."
+    ]
+    bot.send_message(chat_id, random.choice(punchlines), parse_mode="HTML")
     texte += "</blockquote>"
 
     try:
         bot.send_message(chat_id, texte, parse_mode="HTML")
     except Exception as e:
         print("Erreur envoi classement :", e)
+        
 @bot.message_handler(commands=['bilan'])
 def bilan_personnel(message):
     user_id = str(message.from_user.id)
