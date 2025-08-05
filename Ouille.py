@@ -159,21 +159,12 @@ class Game:
                 parse_mode="HTML"
             )
 
-            time.sleep(2)
+            time.sleep(1)
 
-            # Envoie une fausse réponse pour simuler une hésitation
-            fausse_reponse = "erreur"
-            bot.send_message(self.chat_id, f"💬 motArena (faux) : \"{fausse_reponse}\" 😅", parse_mode="HTML")
-
-            time.sleep(2)
-
-            # Ensuite envoie la bonne réponse
             reponse_correcte = random.choice(bonnes_reponses)
-            bot.send_message(self.chat_id, f"💬 motArena (corrigé) : \"{reponse_correcte}\" 😏", parse_mode="HTML")
+            bot.send_message(self.chat_id, f"💬 motArena : \"{reponse_correcte}\" 😏", parse_mode="HTML")
 
-            # Valide la bonne réponse (stop timer, passe au joueur suivant)
             self.validate(self.current_player, reponse_correcte)
-
         else:
             nom = self.get_name(self.current_player)
             temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
@@ -193,6 +184,10 @@ class Game:
 
     def validate(self, user, word):
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
+            return
+
+        # Bloque si le chrono est déjà fini
+        if self.timer is None:
             return
 
         word = word.lower().strip()
@@ -241,6 +236,18 @@ class Game:
                         victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
                     else:
                         victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
+
+                # Ajouter 1 défaite à tous les perdants
+                for joueur in self.players:
+                    jid = str(joueur.id)
+                    if jid != uid and joueur.id != MOTARENA_ID:
+                        if jid not in victoires_globales:
+                            victoires_globales[jid] = {"victoires": 0, "defaites": 1}
+                        else:
+                            if isinstance(victoires_globales[jid], int):
+                                victoires_globales[jid] = {"victoires": victoires_globales[jid], "defaites": 1}
+                            else:
+                                victoires_globales[jid]["defaites"] = victoires_globales[jid].get("defaites", 0) + 1
 
                 save_victoires(victoires_globales)
 
@@ -624,4 +631,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling() 
+    bot.infinity_polling()  
