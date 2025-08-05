@@ -162,8 +162,6 @@ class Game:
             time.sleep(2)
 
             # Envoie une fausse réponse pour simuler une hésitation
-            # Ici on choisit une réponse qui n'est pas dans les bonnes réponses
-            # ou on peut choisir un mot au hasard pas correct
             fausse_reponse = "erreur"
             bot.send_message(self.chat_id, f"💬 motArena (faux) : \"{fausse_reponse}\" 😅", parse_mode="HTML")
 
@@ -187,6 +185,11 @@ class Game:
             )
             self.timer = Timer(temps, self.timeout)
             self.timer.start()
+
+    def timeout(self):
+        bot.send_message(self.chat_id, f"⏰ Temps écoulé pour {self.get_name(self.current_player)} ! Tu es éliminé.")
+        self.eliminated.add(self.current_player.id)
+        self.check_winner_or_continue()
 
     def validate(self, user, word):
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
