@@ -115,29 +115,48 @@ class Game:
         self.ask_next()
 
     def ask_next(self):
-        if not self.active:
-            return
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-        self.current_player = self.players[self.current_index]
-        self.turn_count[self.current_player.id] += 1
-        delay = 20 if self.turn_count[self.current_player.id] <= 2 else 10
+    if not self.active:
+        return
+    if self.timer:
+        self.timer.cancel()
+        self.timer = None
+    self.current_player = self.players[self.current_index]
+    self.turn_count[self.current_player.id] += 1
+    delay = 20 if self.turn_count[self.current_player.id] <= 2 else 10
 
-        word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
+    word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
+    word = random.choice(list(word_list.keys()))
+    while word in self.used_words:
         word = random.choice(list(word_list.keys()))
-        while word in self.used_words:
-            word = random.choice(list(word_list.keys()))
-        self.current_word = word
-        self.used_words.add(word)
+    self.current_word = word
+    self.used_words.add(word)
 
-        name = self.get_name(self.current_player)
-        bot.send_message(
-            self.chat_id,
-            f"<b>Tour de {name}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {delay} secondes !",
-            parse_mode="HTML"
-        )
+    name = self.get_name(self.current_player)
+    bot.send_message(
+        self.chat_id,
+        f"<b>Tour de {name}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {delay} secondes !",
+        parse_mode="HTML"
+    )
 
+    # === Ajout pour mettre à jour game_state.json ===
+    try:
+        with open("game_state.json", "r", encoding="utf-8") as f:
+            state = json.load(f)
+    except FileNotFoundError:
+        state = {}
+
+    state[str(self.chat_id)] = {
+        "active": self.active,
+        "mode": self.mode,
+        "players": [{"id": p.id} for p in self.players],
+        "current_player_id": self.current_player.id,
+        "current_word": self.current_word,
+        "used_words": list(self.used_words),
+        "mbot_response": None
+    }
+
+    with open("game_state.json", "w", encoding="utf-8") as f:
+        json.dump(state, f, ensure_ascii=False, indent=2)
         self.timer = Timer(delay, self.timeout)
         self.timer.start()
 
