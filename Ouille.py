@@ -592,6 +592,34 @@ def bilan_personnel(message):
         bot.send_message(chat_id, texte, parse_mode="HTML")
     except Exception as e:
         print("Erreur envoi bilan :", e)
+        
+@bot.message_handler(commands=["stock"])
+def stock_data(message):
+    if message.from_user.id != CREATOR_ID:
+        return
+    try:
+        with open("victoires.json", "rb") as f:
+            bot.send_document(message.from_user.id, f, caption="📦 Données sauvegardées.")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"❌ Erreur : {e}")
+        
+         
+@bot.message_handler(content_types=["document"])
+def transfert_data(message):
+    if message.from_user.id != CREATOR_ID:
+        return
+    if message.document.file_name != "victoires.json":
+        bot.send_message(message.chat.id, "❌ Nom de fichier incorrect.")
+        return
+    try:
+        file_info = bot.get_file(message.document.file_id)
+        downloaded_file = bot.download_file(file_info.file_path)
+        with open("victoires.json", "wb") as f:
+            f.write(downloaded_file)
+        bot.send_message(message.chat.id, "✅ Données restaurées avec succès.")
+    except Exception as e:
+        bot.send_message(message.chat.id, f"❌ Erreur transfert : {e}")           
+               
 @bot.message_handler(commands=['waitgame'])
 def wait_game(message):
     chat_id = message.chat.id
@@ -633,4 +661,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling()   
+    bot.infinity_polling()    
