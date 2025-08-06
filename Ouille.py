@@ -198,9 +198,14 @@ class Game:
 
         word = word.lower().strip()
 
-        if word == self.current_word or word in self.used_words:
-            bot.send_message(self.chat_id, f"⚠️ Ce mot a déjà été utilisé {self.get_name(user)}. Essaie un autre !", parse_mode="HTML")
-            return
+        if word == self.current_word or word in self.used_words:  
+            bot.send_message(self.chat_id, f"⚠️ Ce mot a déjà été utilisé {self.get_name(user)}. Essaie un autre !", parse_mode="HTML")  
+    
+            if user.id == MOTARENA_ID:
+                time.sleep(1)
+                self.ask_next()
+    
+                return
 
         valid_list = SYNONYMES.get(self.current_word, []) if self.mode == 'synonyme' else ANTONYMES.get(self.current_word, [])
         if word in valid_list:
@@ -290,7 +295,9 @@ def ajouter_bot(message):
     if game.active:
         bot.send_message(chat_id, "⛔ La partie a déjà commencé.")
         return
-
+    if game.mode is None:
+        bot.answer_callback_query(call.id, text="⚠️ Choisis un mode avant d’ajouter motArena.", show_alert=True)
+        return
     if any(p.id == MOTARENA_ID for p in game.players):
         bot.send_message(chat_id, "🤖 Le bot motArena est déjà dans la partie.")
         return
@@ -306,7 +313,10 @@ def start_game(message):
     if chat_id in games:
         bot.send_message(chat_id, "⚠️ Une partie est déjà en cours ou en attente.")
         return
-
+    if game.mode is None:
+        bot.answer_callback_query(call.id, text="⚠️ Choisis un mode avant d’ajouter motArena.", show_alert=True)
+        return         
+    
     games[chat_id] = Game(chat_id)
     games[chat_id].add_player(user)
 
@@ -623,4 +633,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling()  
+    bot.infinity_polling()   
