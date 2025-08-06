@@ -41,15 +41,20 @@ VANNES_MOTARENA = [
 ]
 
 
+GROUPE_SAUVEGARDE_ID = -1002898826193  # Mets ici l'ID du groupe
+
 def auto_stock():
     while True:
         try:
             with open("victoires.json", "rb") as f:
-                bot.send_document(CREATOR_ID, f, caption="📦 Sauvegarde automatique")
+                bot.send_document(GROUPE_SAUVEGARDE_ID, f, caption="📦 Sauvegarde automatique")
         except Exception as e:
             print("❌ Erreur auto-stock :", e)
         time.sleep(300)  # Toutes les 5 minutes
+
 threading.Thread(target=auto_stock).start()
+        
+        
 def load_victoires():
     if not os.path.exists(VICTOIRES_FILE):
         return {}
@@ -691,4 +696,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling()    
+    bot.infinity_polling()     
