@@ -18,7 +18,7 @@ with open("dictionnaire.json", "r", encoding="utf-8") as f:
 CREATOR_ID = 7913375184  
 SYNONYMES = data["synonymes"]
 ANTONYMES = data["antonymes"]
-COMMANDES_DM_AUTORISÉES = ["/start", "/gradin", "/bilan" , "/joueurs" , "/reset" ]
+COMMANDES_DM_AUTORISÉES = ["/start", "/gradin", "/bilan" , "/joueurs" , "/reset", "/document" ]
 VICTOIRES_FILE = "victoires.json"
 MOTARENA_ID = -999  # Un ID fixe et fictif pour identifier le bot dans la partie
 motArena_user = SimpleNamespace(id=MOTARENA_ID, username="motArena", first_name="MotArena")
