@@ -155,7 +155,7 @@ class Game:
         self.used_words.add(word)
 
         if self.current_player.id == MOTARENA_ID:
-            reponse = word_list[word][0]
+            reponse = random.choice(word_list[word])
             bot.send_message(
                 self.chat_id,
                 f"<b>Tour de motArena</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>",
