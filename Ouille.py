@@ -616,6 +616,11 @@ def transfert_data(message):
         downloaded_file = bot.download_file(file_info.file_path)
         with open("victoires.json", "wb") as f:
             f.write(downloaded_file)
+
+        # Recharge les données dans la mémoire
+        global victoires_globales
+        victoires_globales = load_victoires()
+
         bot.send_message(message.chat.id, "✅ Données restaurées avec succès.")
     except Exception as e:
         bot.send_message(message.chat.id, f"❌ Erreur transfert : {e}")           
