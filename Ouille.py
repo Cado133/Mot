@@ -44,9 +44,6 @@ def save_victoires(data):
 victoires_globales = load_victoires()
 games = {}
 
-
-
-
 class Game:
     def __init__(self, chat_id, mode=None):
         self.chat_id = chat_id
@@ -122,7 +119,7 @@ class Game:
         return True
 
     def start_game(self):
-        self.silent_cancel_countdown()
+        self.silent_cancel_countdown()  # Remplacé par version silencieuse
         if len(self.players) < 2:
             bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
             return
@@ -143,6 +140,7 @@ class Game:
         word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
         available_words = list(word_list.keys())
 
+        # Choisir un mot qui n’a pas encore été utilisé
         word = random.choice(available_words)
         while word in self.used_words and len(self.used_words) < len(available_words):
             word = random.choice(available_words)
@@ -151,39 +149,49 @@ class Game:
         self.used_words.add(word)
 
         if self.current_player.id == MOTARENA_ID:
-            bonnes_reponses = word_list[word]
-
+            # 🤖 motArena joue automatiquement
+            reponse = word_list[word][0]  # 1ère bonne réponse
             bot.send_message(
                 self.chat_id,
                 f"<b>Tour de motArena</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>",
                 parse_mode="HTML"
             )
+            time.sleep(2)
+            bot.send_message(self.chat_id, f"💬 motArena : \"{reponse}\" 😏", parse_mode="HTML")
+            self.validate(self.current_player, reponse)
+        else:
+            # 👤 Tour d’un joueur humain
+            nom = self.get_name(self.current_player)
+            temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
 
-            time.sleep(1)
-
-            reponse_correcte = random.choice(bonnes_reponses)
-            bot.send_message(self.chat_id, f"💬 motArena : \"{reponse_correcte}\" 😏", parse_mode="HTML")
-
-            self.validate(self.current_player, reponse_correcte)
-            return  # fin tour motArena, ne lance pas timer
-
-        # Timer 30s pour les joueurs humains
-        self.timer = Timer(30, self.timeout)
-        self.timer.start()
+            bot.send_message(
+                self.chat_id,
+                f"<b>Tour de {nom}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {temps} secondes !",
+                parse_mode="HTML"
+            )
+            self.timer = Timer(temps, self.timeout)
+            self.timer.start()
 
     def timeout(self):
-        bot.send_message(self.chat_id, f"⏰ Temps écoulé pour {self.get_name(self.current_player)} ! Tu es éliminé.")
+        name = self.get_name(self.current_player)
+        bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
         self.eliminated.add(self.current_player.id)
+
+        # 🔻 Ajout des défaites
+        user_id = str(self.current_player.id)
+        if user_id not in victoires_globales:
+            victoires_globales[user_id] = {"victoires": 0, "defaites": 1}
+        else:
+            if isinstance(victoires_globales[user_id], int):  # rétro-compatibilité
+                victoires_globales[user_id] = {"victoires": victoires_globales[user_id], "defaites": 1}
+            else:
+                victoires_globales[user_id]["defaites"] = victoires_globales[user_id].get("defaites", 0) + 1
+
+        save_victoires(victoires_globales)
         self.check_winner_or_continue()
 
     def validate(self, user, word):
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
-            return
-
-        if self.timer is None:
-            return
-
-        if user.id == MOTARENA_ID:
             return
 
         word = word.lower().strip()
@@ -217,6 +225,7 @@ class Game:
             winner = alive[0]
             winner_name = self.get_name(winner)
 
+            # 🎉 Annonce de victoire
             bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
 
             if winner.id == MOTARENA_ID:
@@ -233,20 +242,9 @@ class Game:
                     else:
                         victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
 
-                # Ajouter 1 défaite à tous les perdants
-                for joueur in self.players:
-                    jid = str(joueur.id)
-                    if jid != uid and joueur.id != MOTARENA_ID:
-                        if jid not in victoires_globales:
-                            victoires_globales[jid] = {"victoires": 0, "defaites": 1}
-                        else:
-                            if isinstance(victoires_globales[jid], int):
-                                victoires_globales[jid] = {"victoires": victoires_globales[jid], "defaites": 1}
-                            else:
-                                victoires_globales[jid]["defaites"] = victoires_globales[jid].get("defaites", 0) + 1
-
                 save_victoires(victoires_globales)
 
+            # Nettoyage de la partie
             self.active = False
             if self.timer:
                 self.timer.cancel()
@@ -627,4 +625,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling() 
+    bot.infinity_polling()  
