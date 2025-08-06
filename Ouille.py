@@ -126,52 +126,54 @@ class Game:
         self.active = True
         self.ask_next()
 
-    def ask_next(self):
-        if not self.active:
-            return
+def ask_next(self):
+    if not self.active:
+   def ask_next(self):
+    if not self.active:
+        return
 
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
+    if self.timer:
+        self.timer.cancel()
+        self.timer = None
 
-        self.current_player = self.players[self.current_index]
-        self.turn_count[self.current_player.id] += 1
+    self.current_player = self.players[self.current_index]
+    self.turn_count[self.current_player.id] += 1
 
-        word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
-        available_words = list(word_list.keys())
+    word_list = SYNONYMES if self.mode == "synonyme" else ANTONYMES
+    available_words = list(word_list.keys())
 
-        # Choisir un mot qui n’a pas encore été utilisé
+    # Choisir un mot qui n’a pas encore été utilisé
+    word = random.choice(available_words)
+    while word in self.used_words and len(self.used_words) < len(available_words):
         word = random.choice(available_words)
-        while word in self.used_words and len(self.used_words) < len(available_words):
-            word = random.choice(available_words)
 
-        self.current_word = word
-        self.used_words.add(word)
+    self.current_word = word
+    self.used_words.add(word)
 
-        if self.current_player.id == MOTARENA_ID:
-            # 🤖 motArena joue automatiquement
-            reponse = word_list[word][0]  # 1ère bonne réponse
-            bot.send_message(
-                self.chat_id,
-                f"<b>Tour de motArena</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>",
-                parse_mode="HTML"
-            )
-            time.sleep(2)
-            bot.send_message(self.chat_id, f"💬 motArena : \"{reponse}\" 😏", parse_mode="HTML")
-            self.validate(self.current_player, reponse)
-        else:
-            # 👤 Tour d’un joueur humain
-            nom = self.get_name(self.current_player)
-            temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
+    if self.current_player.id == MOTARENA_ID:
+        # 🤖 motArena joue automatiquement
+        reponse = word_list[word][0]  # 1ère bonne réponse
+        bot.send_message(
+            self.chat_id,
+            f"<b>Tour de motArena</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>",
+            parse_mode="HTML"
+        )
+        time.sleep(2)
+        bot.send_message(self.chat_id, f"💬 motArena : \"{reponse}\" 😏", parse_mode="HTML")
+        self.validate(self.current_player, reponse)
+    else:
+        # 👤 Tour d’un joueur humain
+        nom = self.get_name(self.current_player)
+        temps = 20 if self.turn_count[self.current_player.id] <= 2 else 10
 
-            bot.send_message(
-                self.chat_id,
-                f"<b>Tour de {nom}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {temps} secondes !",
-                parse_mode="HTML"
-            )
-            self.timer = Timer(temps, self.timeout)
-            self.timer.start()
-
+        bot.send_message(
+            self.chat_id,
+            f"<b>Tour de {nom}</b>\n<blockquote>Mot : <b>{word}</b>\nMode : {self.mode}</blockquote>\nTu as {temps} secondes !",
+            parse_mode="HTML"
+        )
+        self.timer = Timer(temps, self.timeout)
+        self.timer.start()
+    
     def timeout(self):
         name = self.get_name(self.current_player)
         bot.send_message(self.chat_id, f"❌ <b>{name} a perdu par inactivité !</b>", parse_mode="HTML")
@@ -189,6 +191,7 @@ class Game:
 
         save_victoires(victoires_globales)
         self.check_winner_or_continue()
+
 
     def validate(self, user, word):
         if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
@@ -214,50 +217,51 @@ class Game:
 
         bot.send_message(self.chat_id, f"⚠️ Mauvaise réponse {self.get_name(user)}. Tu peux réessayer !", parse_mode="HTML")
 
-    def skip_eliminated(self):
-        while self.players[self.current_index].id in self.eliminated:
-            self.current_index = (self.current_index + 1) % len(self.players)
 
-    def check_winner_or_continue(self):
-        alive = [p for p in self.players if p.id not in self.eliminated]
+def skip_eliminated(self):
+    while self.players[self.current_index].id in self.eliminated:
+        self.current_index = (self.current_index + 1) % len(self.players)
 
-        if len(alive) == 1:
-            winner = alive[0]
-            winner_name = self.get_name(winner)
+def check_winner_or_continue(self):
+    alive = [p for p in self.players if p.id not in self.eliminated]
 
-            # 🎉 Annonce de victoire
-            bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
+    if len(alive) == 1:
+        winner = alive[0]
+        winner_name = self.get_name(winner)
 
-            if winner.id == MOTARENA_ID:
-                vanne = random.choice(VANNES_MOTARENA)
-                time.sleep(1.5)
-                bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
-            else:
-                uid = str(winner.id)
-                if uid not in victoires_globales:
-                    victoires_globales[uid] = {"victoires": 1, "defaites": 0}
-                else:
-                    if isinstance(victoires_globales[uid], int):
-                        victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
-                    else:
-                        victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
+        # 🎉 Annonce de victoire
+        bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
 
-                save_victoires(victoires_globales)
-
-            # Nettoyage de la partie
-            self.active = False
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-            del games[self.chat_id]
-
+        if winner.id == MOTARENA_ID:
+            vanne = random.choice(VANNES_MOTARENA)
+            time.sleep(1.5)
+            bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
         else:
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-            self.current_index = (self.current_index + 1) % len(self.players)
-            self.skip_eliminated()
-            self.ask_next()
+            uid = str(winner.id)
+            if uid not in victoires_globales:
+                victoires_globales[uid] = {"victoires": 1, "defaites": 0}
+            else:
+                if isinstance(victoires_globales[uid], int):
+                    victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
+                else:
+                    victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
+
+            save_victoires(victoires_globales)
+
+        # Nettoyage de la partie
+        self.active = False
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        del games[self.chat_id]
+
+    else:
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        self.current_index = (self.current_index + 1) % len(self.players)
+        self.skip_eliminated()
+        self.ask_next()
 ### ━━━ Commandes Telegram ━━━
 
 # ➤ Bloque les commandes interdites en DM
@@ -625,4 +629,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling()  
+    bot.infinity_polling() 
