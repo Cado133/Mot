@@ -23,15 +23,22 @@ VICTOIRES_FILE = "victoires.json"
 MOTARENA_ID = -999  # Un ID fixe et fictif pour identifier le bot dans la partie
 motArena_user = SimpleNamespace(id=MOTARENA_ID, username="motArena", first_name="MotArena")
 VANNES_MOTARENA = [
-    "Même avec une main dans le dos, je gagne. 😏",
-    "C’était trop facile. Envoyez-moi un vrai adversaire la prochaine fois !",
-    "Vous pensiez gagner ? Quelle innocence.",
-    "Encore un round… ou vous abandonnez ?",
-    "Je suis l’alpha et l’oméga du mot.",
-    "Vous jouez aux devinettes, moi je parle dictionnaire.",
-    "Je suis une IA. L’échec n’est pas dans mon code."
+    "T’as pas perdu, t’as juste montré au monde à quel point t’es nul.",
+    "Même un mur aurait mieux joué que toi… au moins lui il bloque.",
+    "Tu joues ou tu testes le bouton 'honte' en boucle ?",
+    "T'as le QI d’un caillou, sans la solidité.",
+    "Joue encore une fois… qu’on rigole tous ensemble.",
+    "Tu frappes à la porte de la victoire avec un doigt cassé.",
+    "J’ai pas gagné… c’est toi qui t’es écrasé tout seul.",
+    "Tu veux une revanche ? Pourquoi ? Pour t'humilier deux fois ?",
+    "Même avec Google dans la main, t'aurais perdu.",
+    "Ton cerveau c’est du Wi-Fi public : lent, instable, et tout le monde l’utilise.",
+    "Chaque fois que tu joues, le mot 'espoir' démissionne.",
+    "Tu devrais être payé pour autant rater, c’est du talent à ce stade.",
+    "Joue pas avec moi, joue au loto, t’as plus de chances là-bas.",
+    "T’as le niveau d’un tutoriel… et encore, version bêta.",
+    "À ce niveau de nullité, c’est plus une défaite, c’est une œuvre d’art."
 ]
-
 def load_victoires():
     if not os.path.exists(VICTOIRES_FILE):
         return {}
