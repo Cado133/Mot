@@ -313,10 +313,7 @@ def start_game(message):
     if chat_id in games:
         bot.send_message(chat_id, "⚠️ Une partie est déjà en cours ou en attente.")
         return
-    if game.mode is None:
-        bot.answer_callback_query(call.id, text="⚠️ Choisis un mode avant d’ajouter motArena.", show_alert=True)
-        return         
-    
+   
     games[chat_id] = Game(chat_id)
     games[chat_id].add_player(user)
 
@@ -346,7 +343,10 @@ def ajouter_motarena(call):
         return
 
     game = games[chat_id]
-
+    if game.mode is None:
+        bot.answer_callback_query(call.id, text="⚠️ Choisis un mode avant d’ajouter motArena.", show_alert=True)
+        return         
+     
     if any(p.id == MOTARENA_ID for p in game.players):
         bot.answer_callback_query(call.id, text="ℹ️ motArena est déjà dans la partie.")
         return
