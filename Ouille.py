@@ -50,7 +50,7 @@ def auto_stock():
                 bot.send_document(GROUPE_SAUVEGARDE_ID, f, caption="📦 Sauvegarde automatique")
         except Exception as e:
             print("❌ Erreur auto-stock :", e)
-        time.sleep(300)  # Toutes les 5 minutes
+        time.sleep(1800)  # Toutes les 5 minutes
 
 threading.Thread(target=auto_stock).start()
         
