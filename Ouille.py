@@ -50,7 +50,7 @@ def auto_stock():
                 bot.send_document(GROUPE_SAUVEGARDE_ID, f, caption="📦 Sauvegarde automatique")
         except Exception as e:
             print("❌ Erreur auto-stock :", e)
-        time.sleep(1800)  # Toutes les 5 minutes
+        time.sleep(300)  # Toutes les 5 minutes
 
 threading.Thread(target=auto_stock).start()
         
@@ -241,48 +241,49 @@ class Game:
         while self.players[self.current_index].id in self.eliminated:
             self.current_index = (self.current_index + 1) % len(self.players)
 
-def check_winner_or_continue(self):
-    alive = [p for p in self.players if p.id not in self.eliminated]
 
-    if len(alive) == 1:
-        winner = alive[0]
-        winner_name = self.get_name(winner)
-        bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
+    def check_winner_or_continue(self):
+        alive = [p for p in self.players if p.id not in self.eliminated]
 
-        if winner.id == MOTARENA_ID:
-            vanne = random.choice(VANNES_MOTARENA)
-            time.sleep(1.5)
-            bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
-        else:
-            uid = str(winner.id)
-            if uid not in victoires_globales:
-                victoires_globales[uid] = {"victoires": 1, "defaites": 0}
+        if len(alive) == 1:
+            winner = alive[0]
+            winner_name = self.get_name(winner)
+            bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
+
+            if winner.id == MOTARENA_ID:
+                vanne = random.choice(VANNES_MOTARENA)
+                time.sleep(1.5)
+                bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
             else:
-                if isinstance(victoires_globales[uid], int):
-                    victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
+                uid = str(winner.id)
+                if uid not in victoires_globales:
+                    victoires_globales[uid] = {"victoires": 1, "defaites": 0}
                 else:
-                    victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
+                    if isinstance(victoires_globales[uid], int):
+                        victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
+                    else:
+                        victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
 
-            save_victoires(victoires_globales)
+                save_victoires(victoires_globales)
 
-        try:
-            with open("victoires.json", "rb") as f:
-                bot.send_document(CREATOR_ID, f, caption="📦 Sauvegarde après victoire")
-        except Exception as e:
-            print("Erreur envoi auto-stock :", e)
+            try:
+                with open("victoires.json", "rb") as f:
+                    bot.send_document(CREATOR_ID, f, caption="📦 Sauvegarde après victoire")
+            except Exception as e:
+                print("Erreur envoi auto-stock :", e)
 
-        self.active = False
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-        del games[self.chat_id]
-    else:
-        if self.timer:
-            self.timer.cancel()
-            self.timer = None
-        self.current_index = (self.current_index + 1) % len(self.players)
-        self.skip_eliminated()
-        self.ask_next()
+            self.active = False
+            if self.timer:
+                self.timer.cancel()
+                self.timer = None
+            del games[self.chat_id]
+        else:
+            if self.timer:
+                self.timer.cancel()
+                self.timer = None
+            self.current_index = (self.current_index + 1) % len(self.players)
+            self.skip_eliminated()
+            self.ask_next()
 ### ━━━ Commandes Telegram ━━━
 
 # ➤ Bloque les commandes interdites en DM
@@ -696,4 +697,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling()     
+    bot.infinity_polling()    
