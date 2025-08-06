@@ -39,6 +39,17 @@ VANNES_MOTARENA = [
     "T’as le niveau d’un tutoriel… et encore, version bêta.",
     "À ce niveau de nullité, c’est plus une défaite, c’est une œuvre d’art."
 ]
+
+
+def auto_stock():
+    while True:
+        try:
+            with open("victoires.json", "rb") as f:
+                bot.send_document(CREATOR_ID, f, caption="📦 Sauvegarde automatique")
+        except Exception as e:
+            print("❌ Erreur auto-stock :", e)
+        time.sleep(300)  # Toutes les 5 minutes
+threading.Thread(target=auto_stock).start()
 def load_victoires():
     if not os.path.exists(VICTOIRES_FILE):
         return {}
@@ -225,42 +236,48 @@ class Game:
         while self.players[self.current_index].id in self.eliminated:
             self.current_index = (self.current_index + 1) % len(self.players)
 
-    def check_winner_or_continue(self):
-        alive = [p for p in self.players if p.id not in self.eliminated]
+def check_winner_or_continue(self):
+    alive = [p for p in self.players if p.id not in self.eliminated]
 
-        if len(alive) == 1:
-            winner = alive[0]
-            winner_name = self.get_name(winner)
-            bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
+    if len(alive) == 1:
+        winner = alive[0]
+        winner_name = self.get_name(winner)
+        bot.send_message(self.chat_id, f"🎉 <b>{winner_name} a gagné la partie !</b>", parse_mode="HTML")
 
-            if winner.id == MOTARENA_ID:
-                vanne = random.choice(VANNES_MOTARENA)
-                time.sleep(1.5)
-                bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
-            else:
-                uid = str(winner.id)
-                if uid not in victoires_globales:
-                    victoires_globales[uid] = {"victoires": 1, "defaites": 0}
-                else:
-                    if isinstance(victoires_globales[uid], int):
-                        victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
-                    else:
-                        victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
-
-                save_victoires(victoires_globales)
-
-            self.active = False
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-            del games[self.chat_id]
+        if winner.id == MOTARENA_ID:
+            vanne = random.choice(VANNES_MOTARENA)
+            time.sleep(1.5)
+            bot.send_message(self.chat_id, f"💬 motArena : « {vanne} »", parse_mode="HTML")
         else:
-            if self.timer:
-                self.timer.cancel()
-                self.timer = None
-            self.current_index = (self.current_index + 1) % len(self.players)
-            self.skip_eliminated()
-            self.ask_next()
+            uid = str(winner.id)
+            if uid not in victoires_globales:
+                victoires_globales[uid] = {"victoires": 1, "defaites": 0}
+            else:
+                if isinstance(victoires_globales[uid], int):
+                    victoires_globales[uid] = {"victoires": victoires_globales[uid] + 1, "defaites": 0}
+                else:
+                    victoires_globales[uid]["victoires"] = victoires_globales[uid].get("victoires", 0) + 1
+
+            save_victoires(victoires_globales)
+
+        try:
+            with open("victoires.json", "rb") as f:
+                bot.send_document(CREATOR_ID, f, caption="📦 Sauvegarde après victoire")
+        except Exception as e:
+            print("Erreur envoi auto-stock :", e)
+
+        self.active = False
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        del games[self.chat_id]
+    else:
+        if self.timer:
+            self.timer.cancel()
+            self.timer = None
+        self.current_index = (self.current_index + 1) % len(self.players)
+        self.skip_eliminated()
+        self.ask_next()
 ### ━━━ Commandes Telegram ━━━
 
 # ➤ Bloque les commandes interdites en DM
@@ -596,6 +613,7 @@ def bilan_personnel(message):
 @bot.message_handler(commands=["stock"])
 def stock_data(message):
     if message.from_user.id != CREATOR_ID:
+        bot.send_message(message.chat.id, "⛔ Cette commande est réservée au créateur.")
         return
     try:
         with open("victoires.json", "rb") as f:
@@ -607,23 +625,30 @@ def stock_data(message):
 @bot.message_handler(content_types=["document"])
 def transfert_data(message):
     if message.from_user.id != CREATOR_ID:
+        bot.send_message(message.chat.id, "⛔ Tu n'as pas l'autorisation d'utiliser cette commande.")
         return
+
+    if not message.document:
+        bot.send_message(message.chat.id, "❌ Aucun document reçu.")
+        return
+
     if message.document.file_name != "victoires.json":
-        bot.send_message(message.chat.id, "❌ Nom de fichier incorrect.")
+        bot.send_message(message.chat.id, "❌ Le fichier doit s’appeler 'victoires.json'.")
         return
+
     try:
         file_info = bot.get_file(message.document.file_id)
         downloaded_file = bot.download_file(file_info.file_path)
+
         with open("victoires.json", "wb") as f:
             f.write(downloaded_file)
 
-        # Recharge les données dans la mémoire
         global victoires_globales
         victoires_globales = load_victoires()
 
         bot.send_message(message.chat.id, "✅ Données restaurées avec succès.")
     except Exception as e:
-        bot.send_message(message.chat.id, f"❌ Erreur transfert : {e}")           
+        bot.send_message(message.chat.id, f"❌ Erreur transfert : {e}")
                
 @bot.message_handler(commands=['waitgame'])
 def wait_game(message):
@@ -666,4 +691,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling()     
+    bot.infinity_polling()    
