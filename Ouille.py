@@ -26,7 +26,7 @@ VANNES_MOTARENA = [
     "T’as pas perdu, t’as juste montré au monde à quel point t’es nul.",
     "Même un mur aurait mieux joué que toi… au moins lui il bloque.",
     "Tu joues ou tu testes le bouton 'honte' en boucle ?",
-    "T'as le QI d’un caillou, sans la solidité.",
+    "T'as le QI d’un caillou, sans la solidité.Tu me fais penser à @Reku_Senpai ",
     "Joue encore une fois… qu’on rigole tous ensemble.",
     "Tu frappes à la porte de la victoire avec un doigt cassé.",
     "J’ai pas gagné… c’est toi qui t’es écrasé tout seul.",
@@ -126,7 +126,7 @@ class Game:
     def add_player(self, user):
         if user.id in [p.id for p in self.players] or self.active:
             return False
-        if len(self.players) >= 4:
+        if len(self.players) >= 100:
             bot.send_message(self.chat_id, "⛔ La partie est pleine (4 joueurs max).")
             return False
         self.players.append(user)
