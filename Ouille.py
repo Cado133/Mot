@@ -26,7 +26,7 @@ VANNES_MOTARENA = [
     "T’as pas perdu, t’as juste montré au monde à quel point t’es nul.",
     "Même un mur aurait mieux joué que toi… au moins lui il bloque.",
     "Tu joues ou tu testes le bouton 'honte' en boucle ?",
-    "T'as le QI d’un caillou, sans la solidité.Tu me fais penser à @Reku_Senpai ",
+    "T'as le QI d’un caillou, sans la solidité.",
     "Joue encore une fois… qu’on rigole tous ensemble.",
     "Tu frappes à la porte de la victoire avec un doigt cassé.",
     "J’ai pas gagné… c’est toi qui t’es écrasé tout seul.",
@@ -50,7 +50,7 @@ def auto_stock():
                 bot.send_document(GROUPE_SAUVEGARDE_ID, f, caption="📦 Sauvegarde automatique")
         except Exception as e:
             print("❌ Erreur auto-stock :", e)
-        time.sleep(900)  # Toutes les 5 minutes
+        time.sleep(300)  # Toutes les 5 minutes
 
 threading.Thread(target=auto_stock).start()
         
@@ -126,7 +126,7 @@ class Game:
     def add_player(self, user):
         if user.id in [p.id for p in self.players] or self.active:
             return False
-        if len(self.players) >= 1000:
+        if len(self.players) >= 69:
             bot.send_message(self.chat_id, "⛔ La partie est pleine (4 joueurs max).")
             return False
         self.players.append(user)
@@ -134,7 +134,7 @@ class Game:
         self.turn_count[user.id] = 0
         bot.send_message(
             self.chat_id,
-            f"✅ {self.get_name(user)} a rejoint la partie ({len(self.players)}/1000)",
+            f"✅ {self.get_name(user)} a rejoint la partie ({len(self.players)}/69)",
             parse_mode="HTML"
         )
         if len(self.players) >= 2 and not self.countdown_started:
@@ -142,6 +142,7 @@ class Game:
         return True
 
     def start_game(self):
+        # Couper immédiatement le chrono de compte à rebours
         self.silent_cancel_countdown()
         if len(self.players) < 2:
             bot.send_message(self.chat_id, "⛔ Pas assez de joueurs pour commencer.")
@@ -153,6 +154,7 @@ class Game:
         if not self.active:
             return
 
+        # Couper immédiatement le chrono précédent
         if self.timer:
             self.timer.cancel()
             self.timer = None
@@ -209,7 +211,11 @@ class Game:
         self.check_winner_or_continue()
 
     def validate(self, user, word):
-        if not self.active or user.id != self.current_player.id or user.id in self.eliminated:
+        # Ignorer toutes les réponses des joueurs éliminés
+        if user.id in self.eliminated:
+            return
+            
+        if not self.active or user.id != self.current_player.id:
             return
 
         word = word.lower().strip()
@@ -227,6 +233,7 @@ class Game:
         if word in valid_list:
             self.used_words.add(word)
             bot.send_message(self.chat_id, f"✅ <b>{self.get_name(user)}</b> a réussi !", parse_mode="HTML")
+            # Couper immédiatement le chrono quand une bonne réponse est donnée
             if self.timer:
                 self.timer.cancel()
                 self.timer = None
@@ -240,7 +247,6 @@ class Game:
     def skip_eliminated(self):
         while self.players[self.current_index].id in self.eliminated:
             self.current_index = (self.current_index + 1) % len(self.players)
-
 
     def check_winner_or_continue(self):
         alive = [p for p in self.players if p.id not in self.eliminated]
@@ -273,11 +279,13 @@ class Game:
                 print("Erreur envoi auto-stock :", e)
 
             self.active = False
+            # Couper le chrono à la fin de partie
             if self.timer:
                 self.timer.cancel()
                 self.timer = None
             del games[self.chat_id]
         else:
+            # Couper le chrono avant de passer au joueur suivant
             if self.timer:
                 self.timer.cancel()
                 self.timer = None
@@ -328,7 +336,7 @@ def ajouter_bot(message):
     game.add_player(motArena_user)
     bot.send_message(chat_id, "🤖 Le bot <b>motArena</b> a rejoint la partie ! Préparez-vous à perdre... 💀", parse_mode="HTML")        
                         
-@bot.message_handler(commands=['ᑎOᑎO'])
+@bot.message_handler(commands=['startgame'])
 def start_game(message):
     chat_id = message.chat.id
     user = message.from_user
@@ -697,4 +705,4 @@ def run_flask():
 
 if __name__ == "__main__":
     threading.Thread(target=run_flask).start()
-    bot.infinity_polling()    
+    bot.infinity_polling()     
