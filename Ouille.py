@@ -126,7 +126,7 @@ class Game:
     def add_player(self, user):
         if user.id in [p.id for p in self.players] or self.active:
             return False
-        if len(self.players) >= 100:
+        if len(self.players) >= 1000:
             bot.send_message(self.chat_id, "⛔ La partie est pleine (4 joueurs max).")
             return False
         self.players.append(user)
@@ -134,7 +134,7 @@ class Game:
         self.turn_count[user.id] = 0
         bot.send_message(
             self.chat_id,
-            f"✅ {self.get_name(user)} a rejoint la partie ({len(self.players)}/4)",
+            f"✅ {self.get_name(user)} a rejoint la partie ({len(self.players)}/1000)",
             parse_mode="HTML"
         )
         if len(self.players) >= 2 and not self.countdown_started:
