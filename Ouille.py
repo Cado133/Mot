@@ -328,7 +328,7 @@ def ajouter_bot(message):
     game.add_player(motArena_user)
     bot.send_message(chat_id, "🤖 Le bot <b>motArena</b> a rejoint la partie ! Préparez-vous à perdre... 💀", parse_mode="HTML")        
                         
-@bot.message_handler(commands=['startgame'])
+@bot.message_handler(commands=['ᑎOᑎO'])
 def start_game(message):
     chat_id = message.chat.id
     user = message.from_user
