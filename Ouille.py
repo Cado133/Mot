@@ -15,7 +15,7 @@ bot_username = bot.get_me().username
 with open("dictionnaire.json", "r", encoding="utf-8") as f:
     data = json.load(f)
     
-CREATOR_ID = 7913375184  
+CREATOR_ID = 8659372528  
 SYNONYMES = data["synonymes"]
 ANTONYMES = data["antonymes"]
 COMMANDES_DM_AUTORISÉES = ["/start", "/gradin", "/bilan" , "/joueurs" , "/reset", "/document" ]
